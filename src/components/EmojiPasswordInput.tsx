@@ -19,7 +19,7 @@ const EmojiPasswordInput = ({
   const handleEmojiSelect = (emoji: string) => {
     const newValue = value + emoji;
     onChange(newValue);
-    setShowEmojiPicker(false);
+    // Keep the picker open to allow multiple emoji selection
     inputRef.current?.focus();
   };
 
@@ -29,6 +29,12 @@ const EmojiPasswordInput = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);
+  };
+
+  const toggleEmojiPicker = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent any default action
+    e.stopPropagation(); // Stop event bubbling
+    setShowEmojiPicker(!showEmojiPicker);
   };
 
   return (
@@ -45,7 +51,7 @@ const EmojiPasswordInput = ({
         <button
           type='button'
           className='px-3 flex items-center justify-center hover:bg-gray-100 transition-colors'
-          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          onClick={toggleEmojiPicker}
           title='Add emoji'
         >
           😊
@@ -61,7 +67,7 @@ const EmojiPasswordInput = ({
       </div>
 
       {showEmojiPicker && (
-        <div className='absolute z-10 mt-1'>
+        <div className='absolute z-10 mt-1 w-full'>
           <EmojiPicker
             onEmojiSelect={handleEmojiSelect}
             onClose={() => setShowEmojiPicker(false)}
