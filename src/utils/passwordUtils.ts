@@ -1,4 +1,4 @@
-import { countEmojis, getUniqueEmojis } from './emojiUtils';
+import { countEmojis, getUniqueEmojis, isEmoji } from './emojiUtils';
 
 // Calculate password strength on a scale of 0-100
 export const calculatePasswordStrength = (password: string): number => {
@@ -38,17 +38,92 @@ export const calculatePasswordStrength = (password: string): number => {
   return Math.min(100, strength);
 };
 
-// Estimate time to crack password (returns a string like "2 days" or "3 years")
-export const estimateTimeToHack = (password: string): string => {
-  const strength = calculatePasswordStrength(password);
+// Calculate password entropy in bits
+export const calculatePasswordEntropy = (password: string): number => {
+  if (!password) return 0;
 
-  if (strength < 20) return 'instantly';
-  if (strength < 30) return 'a few seconds';
-  if (strength < 40) return 'a few minutes';
-  if (strength < 50) return 'a few hours';
-  if (strength < 60) return 'a few days';
-  if (strength < 70) return 'a few weeks';
-  if (strength < 80) return 'a few months';
-  if (strength < 90) return 'a few years';
-  return 'centuries';
+  // Calculate entropy separately for text and emoji parts
+  let textEntropy = 0;
+  let emojiEntropy = 0;
+
+  // Count character types in the text portion
+  let hasLowercase = false;
+  let hasUppercase = false;
+  let hasDigits = false;
+  let hasSpecialChars = false;
+  let textLength = 0;
+  let emojiLength = 0;
+
+  // Analyze each character
+  for (let i = 0; i < password.length; i++) {
+    const char = password[i];
+
+    if (isEmoji(char)) {
+      emojiLength++;
+    } else {
+      textLength++;
+      if (/[a-z]/.test(char)) hasLowercase = true;
+      if (/[A-Z]/.test(char)) hasUppercase = true;
+      if (/\d/.test(char)) hasDigits = true;
+      if (/[^a-zA-Z0-9]/.test(char)) hasSpecialChars = true;
+    }
+  }
+
+  // Determine size of character pools
+  let textPoolSize = 0;
+  if (hasLowercase) textPoolSize += 26;
+  if (hasUppercase) textPoolSize += 26;
+  if (hasDigits) textPoolSize += 10;
+  if (hasSpecialChars) textPoolSize += 32; // Approximate number of common special characters
+
+  // If there are no text characters, don't contribute to entropy
+  if (textLength > 0 && textPoolSize > 0) {
+    textEntropy = textLength * Math.log2(textPoolSize);
+  }
+
+  // For emojis, we use a conservative estimate of available emojis
+  // Unicode 14.0 has approximately 3,633 emojis
+  const emojiPoolSize = 3633;
+
+  if (emojiLength > 0) {
+    emojiEntropy = emojiLength * Math.log2(emojiPoolSize);
+  }
+
+  // Total entropy is the sum
+  return textEntropy + emojiEntropy;
+};
+
+// Get human-readable description of entropy strength
+export const getEntropyDescription = (entropy: number): string => {
+  if (entropy < 28) return 'Very Weak (vulnerable to instant attacks)';
+  if (entropy < 36) return 'Weak (vulnerable to modern hardware)';
+  if (entropy < 60) return 'Reasonable (secure against most attacks)';
+  if (entropy < 80) return 'Strong (secure against targeted attacks)';
+  if (entropy < 100) return 'Very Strong (secure against nation-state actors)';
+  return 'Extremely Strong (virtually unbreakable with current technology)';
+};
+
+// Estimate time to crack based on entropy
+export const estimateTimeToCrack = (entropy: number): string => {
+  // Based on 10 billion guesses per second (powerful attacker)
+  const seconds = Math.pow(2, entropy) / 10000000000;
+
+  if (seconds < 1) return 'Instantly';
+  if (seconds < 60) return `${Math.round(seconds)} seconds`;
+
+  const minutes = seconds / 60;
+  if (minutes < 60) return `${Math.round(minutes)} minutes`;
+
+  const hours = minutes / 60;
+  if (hours < 24) return `${Math.round(hours)} hours`;
+
+  const days = hours / 24;
+  if (days < 365) return `${Math.round(days)} days`;
+
+  const years = days / 365;
+  if (years < 1000) return `${Math.round(years)} years`;
+  if (years < 1000000) return `${Math.round(years / 1000)}k years`;
+  if (years < 1000000000) return `${Math.round(years / 1000000)}M years`;
+
+  return 'Billions of years+';
 };

@@ -1,4 +1,9 @@
 import { countEmojis, getUniqueEmojis } from '../utils/emojiUtils';
+import {
+  calculatePasswordEntropy,
+  estimateTimeToCrack,
+  getEntropyDescription,
+} from '../utils/passwordUtils';
 
 interface PasswordMetricsProps {
   password: string;
@@ -18,6 +23,11 @@ const PasswordMetrics = ({
   const emojiPercentage =
     password.length > 0 ? Math.round((emojiCount / password.length) * 100) : 0;
 
+  // Calculate entropy
+  const entropy = calculatePasswordEntropy(password);
+  const entropyDescription = getEntropyDescription(entropy);
+  const crackTime = estimateTimeToCrack(entropy);
+
   // Create a JSON string for easy copying
   const metricsData = JSON.stringify(
     {
@@ -27,8 +37,9 @@ const PasswordMetrics = ({
       emojiCount: emojiCount,
       uniqueEmojiCount: uniqueEmojis.length,
       emojiPercentage: emojiPercentage,
-      creationTimeSeconds: creationTime.toFixed(1),
+      entropy: entropy.toFixed(2),
       passwordStrength: passwordStrength,
+      creationTimeSeconds: creationTime.toFixed(1),
       timestamp: new Date().toISOString(),
     },
     null,
@@ -59,7 +70,7 @@ const PasswordMetrics = ({
         <div className='bg-white p-2 rounded border'>
           <div className='text-sm text-gray-500'>Total Length</div>
           <div className='text-lg font-medium'>
-            {password.length} characters
+            {password.length - emojiCount} characters
           </div>
         </div>
         <div className='bg-white p-2 rounded border'>
@@ -71,7 +82,7 @@ const PasswordMetrics = ({
         <div className='bg-white p-2 rounded border'>
           <div className='text-sm text-gray-500'>Text Characters</div>
           <div className='text-lg font-medium'>
-            {textLength} ({100 - emojiPercentage}%)
+            {textLength - emojiCount} ({100 - emojiPercentage}%)
           </div>
         </div>
         <div className='bg-white p-2 rounded border'>
@@ -82,7 +93,7 @@ const PasswordMetrics = ({
         </div>
       </div>
 
-      <div className='mb-3'>
+      <div className='mb-4'>
         <div className='text-sm text-gray-500 mb-1'>Password Strength</div>
         <div className='flex items-center'>
           <div className='flex-grow h-2 bg-gray-200 rounded-full overflow-hidden'>
@@ -104,6 +115,15 @@ const PasswordMetrics = ({
               ? 'Medium'
               : 'Strong'}
           </span>
+        </div>
+      </div>
+
+      <div className='mb-4 bg-white p-3 rounded border'>
+        <div className='text-sm text-gray-500 mb-1'>Password Entropy</div>
+        <div className='text-lg font-medium'>{entropy.toFixed(2)} bits</div>
+        <div className='text-xs text-gray-600'>{entropyDescription}</div>
+        <div className='mt-1 text-xs text-gray-500'>
+          Est. time to crack: <span className='font-medium'>{crackTime}</span>
         </div>
       </div>
 
