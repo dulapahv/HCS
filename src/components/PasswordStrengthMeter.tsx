@@ -10,13 +10,6 @@ const PasswordStrengthMeter = ({ strength }: PasswordStrengthMeterProps) => {
     return 'Strong';
   };
 
-  const getStrengthClass = () => {
-    if (strength <= 0) return '';
-    if (strength < 30) return 'weak';
-    if (strength < 60) return 'medium';
-    return 'strong';
-  };
-
   const strengthColorClass = () => {
     if (strength <= 0) return 'bg-gray-200';
     if (strength < 30) return 'bg-red-500';
