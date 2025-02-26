@@ -34,6 +34,10 @@ const EmojiPasswordInput = ({
   const toggleEmojiPicker = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent any default action
     e.stopPropagation(); // Stop event bubbling
+    if (!showEmojiPicker) {
+      // When opening the picker, blur the input to hide keyboard
+      inputRef.current?.blur();
+    }
     setShowEmojiPicker(!showEmojiPicker);
   };
 
