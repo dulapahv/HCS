@@ -19,8 +19,8 @@ const EmojiPasswordInput = ({
   const handleEmojiSelect = (emoji: string) => {
     const newValue = value + emoji;
     onChange(newValue);
-    // Keep the picker open to allow multiple emoji selection
-    inputRef.current?.focus();
+    // Don't refocus the input to prevent mobile keyboard from appearing
+    // inputRef.current?.focus()
   };
 
   const handleToggleShowPassword = () => {
@@ -31,14 +31,25 @@ const EmojiPasswordInput = ({
     onChange(e.target.value);
   };
 
-  const toggleEmojiPicker = (e: React.MouseEvent) => {
+  const toggleEmojiPicker = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault(); // Prevent any default action
     e.stopPropagation(); // Stop event bubbling
-    if (!showEmojiPicker) {
-      // When opening the picker, blur the input to hide keyboard
-      inputRef.current?.blur();
+
+    // Prevent default touch behavior for iOS
+    if ('touches' in e) {
+      e.stopPropagation();
+      e.preventDefault();
     }
-    setShowEmojiPicker(!showEmojiPicker);
+
+    // Blur the input to hide the mobile keyboard
+    if (inputRef.current) {
+      inputRef.current.blur();
+    }
+
+    // Add small delay for iOS to prevent double registration
+    setTimeout(() => {
+      setShowEmojiPicker(!showEmojiPicker);
+    }, 10);
   };
 
   return (
@@ -56,6 +67,7 @@ const EmojiPasswordInput = ({
           type='button'
           className='px-3 flex items-center justify-center hover:bg-gray-100 transition-colors'
           onClick={toggleEmojiPicker}
+          onTouchEnd={toggleEmojiPicker}
           title='Add emoji'
         >
           😊
