@@ -38,49 +38,26 @@ const EmojiPasswordInput = ({
     setShowPassword((prev) => !prev);
   };
 
-  // Toggle emoji picker
+  // Toggle emoji picker and blur input when opening
   const toggleEmojiPicker = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!showEmojiPicker) {
-      inputRef.current?.blur();
+      // Set input to read-only to prevent keyboard from appearing on iOS
+      if (inputRef.current) {
+        inputRef.current.setAttribute("readonly", "true");
+        inputRef.current.blur();
+      }
+    } else {
+      // Remove read-only attribute when closing emoji picker
+      if (inputRef.current) {
+        inputRef.current.removeAttribute("readonly");
+      }
     }
     setShowEmojiPicker(!showEmojiPicker);
   };
 
-  // Handle emoji selection
-  const handleEmojiSelect = (emoji: string) => {
-    const pos = inputRef.current?.selectionStart ?? 0;
-    const graphemes = splitter.splitGraphemes(value);
-    const newGraphemes = [
-      ...graphemes.slice(0, pos),
-      emoji,
-      ...graphemes.slice(pos),
-    ];
-    const newValue = newGraphemes.join("");
-    onChange(newValue);
-
-    if (!showPassword) {
-      const newMasked = splitter
-        .splitGraphemes(newValue)
-        .map(() => "•")
-        .join("");
-      if (inputRef.current) {
-        inputRef.current.value = newMasked;
-        setTimeout(() => {
-          inputRef.current?.setSelectionRange(pos + 1, pos + 1);
-        }, 0);
-      }
-    } else {
-      setTimeout(() => {
-        const newPos = value.slice(0, pos).length + emoji.length;
-        inputRef.current?.setSelectionRange(newPos, newPos);
-      }, 0);
-    }
-    inputRef.current?.focus();
-  };
-
-  // Helper to get code unit offset for a grapheme index
+  // Helper to get code unit offset from grapheme index
   const getCodeUnitOffset = (text: string, graphemeIndex: number): number => {
     const graphemes = splitter.splitGraphemes(text);
     let offset = 0;
@@ -88,6 +65,53 @@ const EmojiPasswordInput = ({
       offset += graphemes[i].length;
     }
     return offset;
+  };
+
+  // Helper to get grapheme index from code unit offset
+  const getGraphemeIndexFromOffset = (text: string, offset: number): number => {
+    const graphemes = splitter.splitGraphemes(text);
+    let currentOffset = 0;
+    for (let i = 0; i < graphemes.length; i++) {
+      currentOffset += graphemes[i].length;
+      if (currentOffset > offset) {
+        return i;
+      }
+    }
+    return graphemes.length;
+  };
+
+  // Handle emoji selection without focusing input
+  const handleEmojiSelect = (emoji: string) => {
+    const pos = inputRef.current?.selectionStart ?? 0;
+    const graphemePos = showPassword
+      ? getGraphemeIndexFromOffset(value, pos) // Convert code unit pos to grapheme pos
+      : pos; // When hidden, pos is already in graphemes
+    const graphemes = splitter.splitGraphemes(value);
+    const newGraphemes = [
+      ...graphemes.slice(0, graphemePos),
+      emoji,
+      ...graphemes.slice(graphemePos),
+    ];
+    const newValue = newGraphemes.join("");
+    onChange(newValue);
+
+    if (!showPassword) {
+      // When hidden, update masked value and set cursor in grapheme units
+      const newMasked = splitter.splitGraphemes(newValue).map(() => "•").join("");
+      if (inputRef.current) {
+        inputRef.current.value = newMasked;
+        setTimeout(() => {
+          inputRef.current?.setSelectionRange(graphemePos + 1, graphemePos + 1);
+        }, 0);
+      }
+    } else {
+      // When shown, set cursor in code units
+      const newOffset = getCodeUnitOffset(newValue, graphemePos + 1);
+      setTimeout(() => {
+        inputRef.current?.setSelectionRange(newOffset, newOffset);
+      }, 0);
+    }
+    // Removed inputRef.current?.focus() to prevent keyboard popup
   };
 
   // Handle input events when password is hidden
@@ -116,26 +140,22 @@ const EmojiPasswordInput = ({
           value.slice(0, codeUnitStart) + data + value.slice(codeUnitEnd);
         newPos = start + splitter.countGraphemes(data);
       } else if (event.inputType === "deleteContentBackward") {
-        if (start === end) {
-          if (start > 0) {
-            const prevGraphemeStart = getCodeUnitOffset(value, start - 1);
-            newPassword =
-              value.slice(0, prevGraphemeStart) + value.slice(codeUnitStart);
-            newPos = start - 1;
-          }
+        if (start === end && start > 0) {
+          const prevGraphemeStart = getCodeUnitOffset(value, start - 1);
+          newPassword =
+            value.slice(0, prevGraphemeStart) + value.slice(codeUnitStart);
+          newPos = start - 1;
         } else {
           newPassword =
             value.slice(0, codeUnitStart) + value.slice(codeUnitEnd);
           newPos = start;
         }
       } else if (event.inputType === "deleteContentForward") {
-        if (start === end) {
-          if (start < splitter.countGraphemes(value)) {
-            const nextGraphemeEnd = getCodeUnitOffset(value, start + 1);
-            newPassword =
-              value.slice(0, codeUnitStart) + value.slice(nextGraphemeEnd);
-            newPos = start;
-          }
+        if (start === end && start < splitter.countGraphemes(value)) {
+          const nextGraphemeEnd = getCodeUnitOffset(value, start + 1);
+          newPassword =
+            value.slice(0, codeUnitStart) + value.slice(nextGraphemeEnd);
+          newPos = start;
         } else {
           newPassword =
             value.slice(0, codeUnitStart) + value.slice(codeUnitEnd);
@@ -144,10 +164,7 @@ const EmojiPasswordInput = ({
       }
 
       onChange(newPassword);
-      const newMasked = splitter
-        .splitGraphemes(newPassword)
-        .map(() => "•")
-        .join("");
+      const newMasked = splitter.splitGraphemes(newPassword).map(() => "•").join("");
       input.value = newMasked;
       setTimeout(() => {
         input.setSelectionRange(newPos, newPos);
