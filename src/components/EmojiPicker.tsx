@@ -39,7 +39,7 @@ const EmojiPicker = ({ onEmojiSelect, onClose }: EmojiPickerProps) => {
         {commonEmojis.map((emoji, index) => (
           <button
             key={index}
-            className='p-2 text-xl cursor-pointer rounded transition-all hover:bg-blue-100 hover:scale-110 active:bg-blue-200'
+            className='p-2 text-xl cursor-pointer rounded transition-all hover:bg-blue-100 active:bg-blue-200 flex items-center justify-center size-8 aspect-square'
             onClick={(e) => handleEmojiClick(emoji, e)}
             title={`Add ${emoji} emoji`}
           >
