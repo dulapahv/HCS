@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import GraphemeSplitter from 'grapheme-splitter';
 import EmojiPicker from './EmojiPicker';
+import twemoji from 'twemoji';
 
 interface EmojiPasswordInputProps {
   value: string;
@@ -27,6 +28,18 @@ const EmojiPasswordInput = ({
         .join(''),
     [value]
   );
+
+  // Render emoji with Twemoji
+  const renderEmojiWithTwemoji = (text: string) => {
+    return {
+      __html: twemoji.parse(text, {
+        folder: 'svg',
+        ext: '.svg',
+        className: 'inline-block h-8',
+        base: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/',
+      }),
+    };
+  };
 
   // Handle input changes when password is shown
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -206,21 +219,29 @@ const EmojiPasswordInput = ({
         />
         <button
           type='button'
-          className={`px-3 flex items-center justify-center transition-colors ${
+          className={`px-2 flex items-center justify-center transition-colors ${
             showEmojiPicker ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
           }`}
           onClick={toggleEmojiPicker}
           title={showEmojiPicker ? 'Close emoji picker' : 'Add emoji'}
         >
-          😊
+          <span
+            dangerouslySetInnerHTML={renderEmojiWithTwemoji('🙂')}
+            className='size-5 flex items-center'
+          />
         </button>
         <button
           type='button'
-          className='px-3 flex items-center justify-center hover:bg-gray-100 transition-colors'
+          className='px-2 flex items-center justify-center hover:bg-gray-100 transition-colors'
           onClick={handleToggleShowPassword}
           title={showPassword ? 'Hide password' : 'Show password'}
         >
-          {showPassword ? '👁️' : '👁️‍🗨️'}
+          <span
+            dangerouslySetInnerHTML={renderEmojiWithTwemoji(
+              showPassword ? '👁️' : '🕶️'
+            )}
+            className='size-5 flex items-center'
+          />
         </button>
       </div>
 

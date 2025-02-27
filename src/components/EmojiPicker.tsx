@@ -90,7 +90,7 @@ const EmojiPicker = ({ onEmojiSelect, onClose }: EmojiPickerProps) => {
       <div className='flex border-b mb-2 pb-1 overflow-x-auto'>
         <button
           type='button'
-          className={`p-1 mr-1 rounded-t text-sm flex-shrink-0 ${
+          className={`p-1 mr-1 rounded text-sm flex-shrink-0 ${
             activeCategory === 'recent'
               ? 'bg-blue-100 font-medium'
               : 'hover:bg-gray-100'
