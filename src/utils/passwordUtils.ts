@@ -1,4 +1,5 @@
 import { countEmojis, getUniqueEmojis, isEmoji } from './emojiUtils';
+import bcryptjs from 'bcryptjs';
 
 // Calculate password strength on a scale of 0-100
 export const calculatePasswordStrength = (password: string): number => {
@@ -126,4 +127,62 @@ export const estimateTimeToCrack = (entropy: number): string => {
   if (years < 1000000000) return `${Math.round(years / 1000000)}M years`;
 
   return 'Billions of years+';
+};
+
+// Hash password for secure storage
+export const hashPassword = (password: string): string => {
+  // Use bcrypt with a cost factor of 10
+  // For the study we use a slightly lower cost factor to make it faster
+  const salt = bcryptjs.genSaltSync(10);
+  return bcryptjs.hashSync(password, salt);
+};
+
+// Verify password against stored hash
+export const verifyPassword = (password: string, hash: string): boolean => {
+  return bcryptjs.compareSync(password, hash);
+};
+
+// Save password and user data securely
+export interface UserData {
+  passwordHash: string;
+  creationTime: number;
+  loginAttempts: number[];
+  loginTimes: number[];
+  lastLogin: number;
+  type: 'emoji' | 'text';
+  shortTermCorrect: boolean;
+  shortTermAttempts: number;
+  shortTermTime: number;
+}
+
+// Save user data to localStorage
+export const saveUserData = (userId: string, data: UserData): void => {
+  localStorage.setItem(`emojipass_user_${userId}`, JSON.stringify(data));
+};
+
+// Get user data from localStorage
+export const getUserData = (userId: string): UserData | null => {
+  const data = localStorage.getItem(`emojipass_user_${userId}`);
+  if (!data) return null;
+  return JSON.parse(data);
+};
+
+// Generate a unique user ID
+export const generateUserId = (): string => {
+  return (
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15)
+  );
+};
+
+// Get user's current session information
+export const getCurrentUserId = (): string | null => {
+  const id = localStorage.getItem('current_user_id');
+  if (!id) return null;
+  return id;
+};
+
+// Set current user ID
+export const setCurrentUserId = (id: string): void => {
+  localStorage.setItem('current_user_id', id);
 };

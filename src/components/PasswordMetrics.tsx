@@ -4,17 +4,27 @@ import {
   estimateTimeToCrack,
   getEntropyDescription,
 } from '../utils/passwordUtils';
+import twemoji from 'twemoji';
+import { useMemo } from 'react';
 
 interface PasswordMetricsProps {
   password: string;
   creationTime: number;
   passwordStrength: number;
+  passwordType: 'emoji' | 'text';
+  loginInfo?: {
+    success: boolean;
+    attempts: number;
+    time: number;
+  };
 }
 
 const PasswordMetrics = ({
   password,
   creationTime,
   passwordStrength,
+  passwordType,
+  loginInfo,
 }: PasswordMetricsProps) => {
   // Stats about the password
   const emojiCount = countEmojis(password);
@@ -31,20 +41,38 @@ const PasswordMetrics = ({
   // Create a JSON string for easy copying
   const metricsData = JSON.stringify(
     {
-      password: password,
-      totalLength: password.length,
-      textCharacters: textLength,
-      emojiCount: emojiCount,
-      uniqueEmojiCount: uniqueEmojis.length,
-      emojiPercentage: emojiPercentage,
+      password_type: passwordType,
+      total_length: password.length,
+      text_characters: textLength,
+      emoji_count: passwordType === 'emoji' ? emojiCount : 0,
+      unique_emoji_count: passwordType === 'emoji' ? uniqueEmojis.length : 0,
+      emoji_percentage: passwordType === 'emoji' ? emojiPercentage : 0,
       entropy: entropy.toFixed(2),
-      passwordStrength: passwordStrength,
-      creationTimeSeconds: creationTime.toFixed(1),
+      password_strength: passwordStrength,
+      creation_time_seconds: creationTime.toFixed(1),
+      short_term_recall: loginInfo
+        ? {
+            success: loginInfo.success,
+            attempts: loginInfo.attempts,
+            time_seconds: loginInfo.time.toFixed(1),
+          }
+        : null,
       timestamp: new Date().toISOString(),
     },
     null,
     2
   );
+
+  // Parse emojis with Twemoji
+  const renderedUniqueEmojis = useMemo(() => {
+    if (!uniqueEmojis.length) return '';
+    return twemoji.parse(uniqueEmojis.join(' '), {
+      folder: 'svg',
+      ext: '.svg',
+      className: 'emoji-display w-6 h-6 inline-block',
+      base: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/',
+    });
+  }, [uniqueEmojis]);
 
   const copyMetricsToClipboard = () => {
     navigator.clipboard
@@ -70,7 +98,7 @@ const PasswordMetrics = ({
         <div className='bg-white p-2 rounded border'>
           <div className='text-sm text-gray-500'>Total Length</div>
           <div className='text-lg font-medium'>
-            {password.length - emojiCount} characters
+            {password.length} characters
           </div>
         </div>
         <div className='bg-white p-2 rounded border'>
@@ -79,18 +107,23 @@ const PasswordMetrics = ({
             {creationTime.toFixed(1)} seconds
           </div>
         </div>
-        <div className='bg-white p-2 rounded border'>
-          <div className='text-sm text-gray-500'>Text Characters</div>
-          <div className='text-lg font-medium'>
-            {textLength - emojiCount} ({100 - emojiPercentage}%)
-          </div>
-        </div>
-        <div className='bg-white p-2 rounded border'>
-          <div className='text-sm text-gray-500'>Emoji Characters</div>
-          <div className='text-lg font-medium'>
-            {emojiCount} ({emojiPercentage}%)
-          </div>
-        </div>
+
+        {passwordType === 'emoji' && (
+          <>
+            <div className='bg-white p-2 rounded border'>
+              <div className='text-sm text-gray-500'>Text Characters</div>
+              <div className='text-lg font-medium'>
+                {textLength} ({100 - emojiPercentage}%)
+              </div>
+            </div>
+            <div className='bg-white p-2 rounded border'>
+              <div className='text-sm text-gray-500'>Emoji Characters</div>
+              <div className='text-lg font-medium'>
+                {emojiCount} ({emojiPercentage}%)
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <div className='mb-4'>
@@ -127,14 +160,47 @@ const PasswordMetrics = ({
         </div>
       </div>
 
-      <div>
-        <div className='text-sm text-gray-500 mb-1'>
-          Unique Emojis Used ({uniqueEmojis.length})
+      {passwordType === 'emoji' && uniqueEmojis.length > 0 && (
+        <div className='mb-4'>
+          <div className='text-sm text-gray-500 mb-1'>
+            Unique Emojis Used ({uniqueEmojis.length})
+          </div>
+          <div
+            className='text-2xl'
+            dangerouslySetInnerHTML={{ __html: renderedUniqueEmojis }}
+          ></div>
         </div>
-        <div className='text-2xl'>
-          {uniqueEmojis.length > 0 ? uniqueEmojis.join(' ') : '-'}
+      )}
+
+      {loginInfo && (
+        <div className='mb-4 bg-white p-3 rounded border'>
+          <div className='text-sm text-gray-500 mb-1'>
+            Short-Term Recall Results
+          </div>
+          <div className='grid grid-cols-2 gap-2'>
+            <div>
+              <div className='text-xs text-gray-500'>Status</div>
+              <div
+                className={`text-sm font-medium ${
+                  loginInfo.success ? 'text-green-600' : 'text-red-600'
+                }`}
+              >
+                {loginInfo.success ? 'Successful' : 'Failed'}
+              </div>
+            </div>
+            <div>
+              <div className='text-xs text-gray-500'>Attempts</div>
+              <div className='text-sm font-medium'>{loginInfo.attempts}</div>
+            </div>
+            <div>
+              <div className='text-xs text-gray-500'>Login Time</div>
+              <div className='text-sm font-medium'>
+                {loginInfo.time.toFixed(1)}s
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className='mt-4 border-t pt-3'>
         <p className='text-xs text-gray-500'>
