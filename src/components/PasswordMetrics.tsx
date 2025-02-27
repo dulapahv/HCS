@@ -11,7 +11,7 @@ interface PasswordMetricsProps {
   password: string;
   creationTime: number;
   passwordStrength: number;
-  passwordType: 'emoji' | 'text';
+  passwordType?: 'emoji' | 'text';
   loginInfo?: {
     success: boolean;
     attempts: number;

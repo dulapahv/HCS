@@ -23,7 +23,7 @@ function TextPasswordApp() {
   const [creationStartTime] = useState<number>(Date.now());
   const [creationTime, setCreationTime] = useState<number>(0);
   const [loginStartTime, setLoginStartTime] = useState<number | null>(null);
-  // const [loginTime, setLoginTime] = useState<number | null>(null);
+  const [, setLoginTime] = useState<number | null>(null);
   const [loginAttempts, setLoginAttempts] = useState<number>(0);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [userId, setUserId] = useState<string>('');

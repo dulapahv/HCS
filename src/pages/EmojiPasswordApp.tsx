@@ -25,7 +25,7 @@ function EmojiPasswordApp() {
   const [creationStartTime] = useState<number>(Date.now());
   const [creationTime, setCreationTime] = useState<number>(0);
   const [loginStartTime, setLoginStartTime] = useState<number | null>(null);
-  // const [loginTime, setLoginTime] = useState<number | null>(null);
+  const [, setLoginTime] = useState<number | null>(null);
   const [loginAttempts, setLoginAttempts] = useState<number>(0);
   const [userId, setUserId] = useState<string>('');
   const [passwordHash, setPasswordHash] = useState<string>('');
