@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import EmojiPasswordInput from '../components/EmojiPasswordInput';
 import twemoji from 'twemoji';
+import { emojiCategories } from '../utils/emojiUtils';
 
 type PasswordType = 'emoji' | 'text';
 
@@ -88,10 +89,34 @@ function ShoulderSurfingExperiment() {
       (p) => p.id === selectedPasswordId
     );
     if (passwordObj) {
-      setCurrentPassword(passwordObj.value);
+      setCurrentPassword(randomPassword(passwordType,passwordObj.value.length));
       setTargetMode(true);
     }
   };
+
+  const randomPassword = (type: PasswordType,len: number) => {
+    let password = '';
+    if (type === 'emoji') {
+      //concat all emoji from emojiCategories into string
+      const emojiChars = [...emojiCategories.activities, ...emojiCategories.animals, ...emojiCategories.food, ...emojiCategories.objects, ...emojiCategories.symbols].join('');
+      
+      for (let i = 0; i < len; i++) {
+        password += emojiChars.charAt(Math.floor(Math.random() * emojiChars.length));
+      }
+    }
+    else{
+    const chars =
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>/?';
+    for (let i = 0; i < len; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+  }
+    return password;
+  }
+
+
+
+  
 
   // Simulate target entering password - this is what the observer would watch
   const simulateTargetEntry = () => {
