@@ -89,39 +89,47 @@ function ShoulderSurfingExperiment() {
       (p) => p.id === selectedPasswordId
     );
     if (passwordObj) {
-      setCurrentPassword(randomPassword(passwordType, passwordObj.value));
+      setCurrentPassword(
+        randomPassword(passwordType, passwordObj.id, passwordObj.value)
+      );
       setTargetMode(true);
     }
   };
 
-  const randomPassword = (type: PasswordType, reference: string): string => {
+  const randomPassword = (
+    type: PasswordType,
+    name: string,
+    reference: string
+  ): string => {
     // Correctly count emoji characters using Array.from for emoji type
     const len =
       type === 'emoji' ? Array.from(reference).length : reference.length;
-
-    if (type === 'emoji') {
-      const emojis = [
-        ...emojiCategories.activities,
-        ...emojiCategories.animals,
-        ...emojiCategories.food,
-        ...emojiCategories.faces,
-        ...emojiCategories.people,
-        ...emojiCategories.objects,
-        ...emojiCategories.symbols,
-        ...emojiCategories.travel,
-      ];
-      return Array.from(
-        { length: len },
-        () => emojis[Math.floor(Math.random() * emojis.length)]
-      ).join('');
-    } else {
-      const chars =
-        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      return Array.from(
-        { length: len },
-        () => chars[Math.floor(Math.random() * chars.length)]
-      ).join('');
+    if (name.includes('random')) {
+      if (type === 'emoji') {
+        const emojis = [
+          ...emojiCategories.activities,
+          ...emojiCategories.animals,
+          ...emojiCategories.food,
+          ...emojiCategories.faces,
+          ...emojiCategories.people,
+          ...emojiCategories.objects,
+          ...emojiCategories.symbols,
+          ...emojiCategories.travel,
+        ];
+        return Array.from(
+          { length: len },
+          () => emojis[Math.floor(Math.random() * emojis.length)]
+        ).join('');
+      } else {
+        const chars =
+          'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-=_+[]{}|;:,.<>/?';
+        return Array.from(
+          { length: len },
+          () => chars[Math.floor(Math.random() * chars.length)]
+        ).join('');
+      }
     }
+    return reference;
   };
 
   // Simulate target entering password - this is what the observer would watch
