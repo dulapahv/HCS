@@ -35,6 +35,12 @@ function EmojiPasswordApp() {
     attempts: number;
     time: number;
   } | null>(null);
+  const [maxAttempts] = useState<number>(5);
+  const [longTermRecallInfo, setLongTermRecallInfo] = useState<{
+    success: boolean;
+    attempts: number;
+    time: number;
+  } | null>(null);
 
   const passwordStrength = calculatePasswordStrength(password);
 
@@ -110,6 +116,15 @@ function EmojiPasswordApp() {
     }
   };
 
+  // Add this function to handle input changes and start timing
+  const handleLoginInputChange = (value: string) => {
+    // Start timer on first keystroke
+    if (loginStartTime === null && value.length === 1) {
+      setLoginStartTime(Date.now());
+    }
+    setLoginAttempt(value);
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const endTime = Date.now();
@@ -119,23 +134,71 @@ function EmojiPasswordApp() {
 
     // Verify against hashed password
     const isCorrect = verifyPassword(loginAttempt, passwordHash);
-    setLoginSuccess(isCorrect);
 
-    // Update user data with short-term recall results
-    const userData = getUserData(userId);
-    if (userData) {
-      userData.shortTermCorrect = isCorrect;
-      userData.shortTermAttempts = loginAttempts + 1;
-      userData.shortTermTime = timeToLogin;
-      saveUserData(userId, userData);
+    // Only set success if correct or max attempts reached
+    if (isCorrect || loginAttempts + 1 >= maxAttempts) {
+      setLoginSuccess(isCorrect);
+
+      // Update user data with short-term recall results
+      const userData = getUserData(userId);
+      if (userData) {
+        userData.shortTermCorrect = isCorrect;
+        userData.shortTermAttempts = loginAttempts + 1;
+        userData.shortTermTime = timeToLogin;
+        saveUserData(userId, userData);
+      }
+
+      // Save short-term recall info for metrics display
+      setShortTermRecallInfo({
+        success: isCorrect,
+        attempts: loginAttempts + 1,
+        time: timeToLogin,
+      });
+    } else {
+      // Clear input for next attempt
+      setLoginAttempt('');
+      alert(
+        `Incorrect password. Attempts: ${loginAttempts + 1}/${maxAttempts}`
+      );
     }
+  };
 
-    // Save short-term recall info for metrics display
-    setShortTermRecallInfo({
-      success: isCorrect,
-      attempts: loginAttempts + 1,
-      time: timeToLogin,
-    });
+  const handleReturningUserLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const endTime = Date.now();
+    const timeToLogin = loginStartTime ? (endTime - loginStartTime) / 1000 : 0;
+    setLoginTime(timeToLogin);
+    setLoginAttempts(loginAttempts + 1);
+
+    // Verify against hashed password
+    const isCorrect = verifyPassword(loginAttempt, passwordHash);
+
+    // Only set success if correct or max attempts reached
+    if (isCorrect || loginAttempts + 1 >= maxAttempts) {
+      setLoginSuccess(isCorrect);
+
+      // Update user data with long-term recall results
+      const userData = getUserData(userId);
+      if (userData) {
+        userData.longTermCorrect = isCorrect;
+        userData.longTermAttempts = loginAttempts + 1;
+        userData.longTermTime = timeToLogin;
+        saveUserData(userId, userData);
+      }
+
+      // Save long-term recall info for metrics display
+      setLongTermRecallInfo({
+        success: isCorrect,
+        attempts: loginAttempts + 1,
+        time: timeToLogin,
+      });
+    } else {
+      // Clear input for next attempt
+      setLoginAttempt('');
+      alert(
+        `Incorrect password. Attempts: ${loginAttempts + 1}/${maxAttempts}`
+      );
+    }
   };
 
   const handleReset = () => {
@@ -154,6 +217,7 @@ function EmojiPasswordApp() {
     setLoginAttempts(0);
     setReturningUser(false);
     setShortTermRecallInfo(null);
+    setLongTermRecallInfo(null);
   };
 
   // If returning user, show login screen directly
@@ -181,7 +245,7 @@ function EmojiPasswordApp() {
           </p>
         </div>
 
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleReturningUserLogin}>
           <div className='mb-4'>
             <label
               htmlFor='loginPassword'
@@ -191,7 +255,7 @@ function EmojiPasswordApp() {
             </label>
             <EmojiPasswordInput
               value={loginAttempt}
-              onChange={setLoginAttempt}
+              onChange={handleLoginInputChange}
               placeholder='Enter your password'
             />
           </div>
@@ -315,7 +379,7 @@ function EmojiPasswordApp() {
               </label>
               <EmojiPasswordInput
                 value={loginAttempt}
-                onChange={setLoginAttempt}
+                onChange={handleLoginInputChange}
                 placeholder='Enter your password'
               />
             </div>
@@ -368,6 +432,17 @@ function EmojiPasswordApp() {
           passwordStrength={passwordStrength}
           passwordType='emoji'
           loginInfo={shortTermRecallInfo || undefined}
+        />
+      )}
+
+      {returningUser && loginSuccess !== null && (
+        <PasswordMetrics
+          password='********' // Password is hidden for security
+          creationTime={0} // Not applicable for returning users
+          passwordStrength={0} // Not applicable for returning users
+          passwordType='emoji'
+          loginInfo={longTermRecallInfo || undefined}
+          isLongTerm={true}
         />
       )}
 

@@ -17,6 +17,7 @@ interface PasswordMetricsProps {
     attempts: number;
     time: number;
   };
+  isLongTerm?: boolean;
 }
 
 const PasswordMetrics = ({
@@ -25,6 +26,7 @@ const PasswordMetrics = ({
   passwordStrength,
   passwordType,
   loginInfo,
+  isLongTerm = false,
 }: PasswordMetricsProps) => {
   // Stats about the password
   const emojiCount = countEmojis(password);
@@ -42,6 +44,7 @@ const PasswordMetrics = ({
   const metricsData = JSON.stringify(
     {
       password_type: passwordType,
+      test_type: isLongTerm ? 'long_term' : 'short_term',
       total_length: password.length,
       text_characters: textLength,
       emoji_count: passwordType === 'emoji' ? emojiCount : 0,
@@ -50,7 +53,7 @@ const PasswordMetrics = ({
       entropy: entropy.toFixed(2),
       password_strength: passwordStrength,
       creation_time_seconds: creationTime.toFixed(1),
-      short_term_recall: loginInfo
+      recall: loginInfo
         ? {
             success: loginInfo.success,
             attempts: loginInfo.attempts,
@@ -84,83 +87,87 @@ const PasswordMetrics = ({
   return (
     <div className='bg-gray-50 rounded-lg border border-gray-200 p-4'>
       <div className='flex justify-between items-center mb-3'>
-        <h3 className='text-lg font-medium text-gray-900'>Password Metrics</h3>
-        <button
-          onClick={copyMetricsToClipboard}
-          className='text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors'
-          title='Copy metrics for Microsoft Form'
-        >
-          Copy Metrics
-        </button>
+        <h3 className='text-lg font-medium text-gray-900'>
+          {isLongTerm ? 'Long-Term Recall Metrics' : 'Password Metrics'}
+        </h3>
       </div>
 
       <div className='grid grid-cols-2 gap-2 mb-4'>
-        <div className='bg-white p-2 rounded border'>
-          <div className='text-sm text-gray-500'>Total Length</div>
-          <div className='text-lg font-medium'>
-            {password.length} characters
-          </div>
-        </div>
-        <div className='bg-white p-2 rounded border'>
-          <div className='text-sm text-gray-500'>Creation Time</div>
-          <div className='text-lg font-medium'>
-            {creationTime.toFixed(1)} seconds
-          </div>
-        </div>
-
-        {passwordType === 'emoji' && (
+        {!isLongTerm && (
           <>
             <div className='bg-white p-2 rounded border'>
-              <div className='text-sm text-gray-500'>Text Characters</div>
+              <div className='text-sm text-gray-500'>Total Length</div>
               <div className='text-lg font-medium'>
-                {textLength} ({100 - emojiPercentage}%)
+                {password.length} characters
               </div>
             </div>
             <div className='bg-white p-2 rounded border'>
-              <div className='text-sm text-gray-500'>Emoji Characters</div>
+              <div className='text-sm text-gray-500'>Creation Time</div>
               <div className='text-lg font-medium'>
-                {emojiCount} ({emojiPercentage}%)
+                {creationTime.toFixed(1)} seconds
               </div>
             </div>
+
+            {passwordType === 'emoji' && (
+              <>
+                <div className='bg-white p-2 rounded border'>
+                  <div className='text-sm text-gray-500'>Text Characters</div>
+                  <div className='text-lg font-medium'>
+                    {textLength} ({100 - emojiPercentage}%)
+                  </div>
+                </div>
+                <div className='bg-white p-2 rounded border'>
+                  <div className='text-sm text-gray-500'>Emoji Characters</div>
+                  <div className='text-lg font-medium'>
+                    {emojiCount} ({emojiPercentage}%)
+                  </div>
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
 
-      <div className='mb-4'>
-        <div className='text-sm text-gray-500 mb-1'>Password Strength</div>
-        <div className='flex items-center'>
-          <div className='flex-grow h-2 bg-gray-200 rounded-full overflow-hidden'>
-            <div
-              className={`h-full ${
-                passwordStrength < 30
-                  ? 'bg-red-500'
+      {!isLongTerm && (
+        <>
+          <div className='mb-4'>
+            <div className='text-sm text-gray-500 mb-1'>Password Strength</div>
+            <div className='flex items-center'>
+              <div className='flex-grow h-2 bg-gray-200 rounded-full overflow-hidden'>
+                <div
+                  className={`h-full ${
+                    passwordStrength < 30
+                      ? 'bg-red-500'
+                      : passwordStrength < 60
+                      ? 'bg-yellow-500'
+                      : 'bg-green-500'
+                  }`}
+                  style={{ width: `${passwordStrength}%` }}
+                ></div>
+              </div>
+              <span className='ml-2 text-sm font-medium'>
+                {passwordStrength < 30
+                  ? 'Weak'
                   : passwordStrength < 60
-                  ? 'bg-yellow-500'
-                  : 'bg-green-500'
-              }`}
-              style={{ width: `${passwordStrength}%` }}
-            ></div>
+                  ? 'Medium'
+                  : 'Strong'}
+              </span>
+            </div>
           </div>
-          <span className='ml-2 text-sm font-medium'>
-            {passwordStrength < 30
-              ? 'Weak'
-              : passwordStrength < 60
-              ? 'Medium'
-              : 'Strong'}
-          </span>
-        </div>
-      </div>
 
-      <div className='mb-4 bg-white p-3 rounded border'>
-        <div className='text-sm text-gray-500 mb-1'>Password Entropy</div>
-        <div className='text-lg font-medium'>{entropy.toFixed(2)} bits</div>
-        <div className='text-xs text-gray-600'>{entropyDescription}</div>
-        <div className='mt-1 text-xs text-gray-500'>
-          Est. time to crack: <span className='font-medium'>{crackTime}</span>
-        </div>
-      </div>
+          <div className='mb-4 bg-white p-3 rounded border'>
+            <div className='text-sm text-gray-500 mb-1'>Password Entropy</div>
+            <div className='text-lg font-medium'>{entropy.toFixed(2)} bits</div>
+            <div className='text-xs text-gray-600'>{entropyDescription}</div>
+            <div className='mt-1 text-xs text-gray-500'>
+              Est. time to crack:{' '}
+              <span className='font-medium'>{crackTime}</span>
+            </div>
+          </div>
+        </>
+      )}
 
-      {passwordType === 'emoji' && uniqueEmojis.length > 0 && (
+      {passwordType === 'emoji' && !isLongTerm && uniqueEmojis.length > 0 && (
         <div className='mb-4'>
           <div className='text-sm text-gray-500 mb-1'>
             Unique Emojis Used ({uniqueEmojis.length})
@@ -175,7 +182,9 @@ const PasswordMetrics = ({
       {loginInfo && (
         <div className='mb-4 bg-white p-3 rounded border'>
           <div className='text-sm text-gray-500 mb-1'>
-            Short-Term Recall Results
+            {isLongTerm
+              ? 'Long-Term Recall Results'
+              : 'Short-Term Recall Results'}
           </div>
           <div className='grid grid-cols-2 gap-2'>
             <div>
@@ -202,9 +211,17 @@ const PasswordMetrics = ({
         </div>
       )}
 
+      <button
+        onClick={copyMetricsToClipboard}
+        className='mt-2 w-full text-sm bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors'
+        title='Copy metrics for Microsoft Form'
+      >
+        Copy Metrics for Submission
+      </button>
+
       <div className='mt-4 border-t pt-3'>
         <p className='text-xs text-gray-500'>
-          Please copy these metrics (using the button above) and paste them into
+          Please copy these metrics using the button above and paste them into
           the Microsoft Form to complete the study. Thank you for your
           participation!
         </p>

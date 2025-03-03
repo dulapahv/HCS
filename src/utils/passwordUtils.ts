@@ -153,6 +153,9 @@ export interface UserData {
   shortTermCorrect: boolean;
   shortTermAttempts: number;
   shortTermTime: number;
+  longTermCorrect?: boolean;
+  longTermAttempts?: number;
+  longTermTime?: number;
 }
 
 // Save user data to localStorage
