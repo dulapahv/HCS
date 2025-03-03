@@ -94,11 +94,6 @@ function ShoulderSurfingExperiment() {
     }
   };
 
-  // Simulate target entering password - this is what the observer would watch
-  const simulateTargetEntry = () => {
-    setTargetEntered(true);
-  };
-
   const randomPassword = (type: PasswordType, reference: string): string => {
     // Correctly count emoji characters using Array.from for emoji type
     const len =
@@ -127,6 +122,11 @@ function ShoulderSurfingExperiment() {
         () => chars[Math.floor(Math.random() * chars.length)]
       ).join("");
     }
+  };
+
+  // Simulate target entering password - this is what the observer would watch
+  const simulateTargetEntry = () => {
+    setTargetEntered(true);
   };
 
   // Start observer mode (where observer tries to guess the password)
