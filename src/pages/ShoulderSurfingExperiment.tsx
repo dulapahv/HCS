@@ -122,7 +122,7 @@ function ShoulderSurfingExperiment() {
         ).join("");
       } else {
         const chars =
-          "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+          "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-=_+[]{}|;:,.<>/?";
         return Array.from(
           { length: len },
           () => chars[Math.floor(Math.random() * chars.length)]
