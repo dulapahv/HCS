@@ -7,21 +7,20 @@ interface EmojiPasswordInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  hideRecentEmojis?: boolean; // Added prop to control recent emojis visibility
+  hideRecentEmojis?: boolean;
 }
 
 const EmojiPasswordInput = ({
   value,
   onChange,
   placeholder = 'Password',
-  hideRecentEmojis = false, // Default to false for backward compatibility
+  hideRecentEmojis = false,
 }: EmojiPasswordInputProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const splitter = new GraphemeSplitter();
 
-  // Compute masked value: one '•' per grapheme
   const maskedValue = useMemo(
     () =>
       splitter
@@ -31,7 +30,6 @@ const EmojiPasswordInput = ({
     [value]
   );
 
-  // Render emoji with Twemoji
   const renderEmojiWithTwemoji = (text: string) => {
     return {
       __html: twemoji.parse(text, {
@@ -43,31 +41,43 @@ const EmojiPasswordInput = ({
     };
   };
 
-  // Handle input changes when password is shown
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);
   };
 
-  // Toggle password visibility
   const handleToggleShowPassword = () => {
-    setShowPassword((prev) => !prev);
+    const input = inputRef.current;
+    if (!input) return;
+
+    const currentCursorPos = input.selectionStart ?? 0;
+    const willShow = !showPassword;
+
+    setShowPassword(willShow);
+
+    setTimeout(() => {
+      if (inputRef.current) {
+        if (willShow) {
+          const codeUnitPos = getCodeUnitOffset(value, currentCursorPos);
+          inputRef.current.setSelectionRange(codeUnitPos, codeUnitPos);
+        } else {
+          const graphemePos = getGraphemeIndexFromOffset(
+            value,
+            currentCursorPos
+          );
+          inputRef.current.setSelectionRange(graphemePos, graphemePos);
+        }
+      }
+    }, 0);
   };
 
-  // Toggle emoji picker and blur input when opening
   const toggleEmojiPicker = (e: React.MouseEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-
-    // Toggle picker visibility
     setShowEmojiPicker(!showEmojiPicker);
-
-    // Blur input when opening picker
     if (!showEmojiPicker && inputRef.current) {
       inputRef.current.blur();
     }
   };
 
-  // Helper to get code unit offset from grapheme index
   const getCodeUnitOffset = (text: string, graphemeIndex: number): number => {
     const graphemes = splitter.splitGraphemes(text);
     let offset = 0;
@@ -77,7 +87,6 @@ const EmojiPasswordInput = ({
     return offset;
   };
 
-  // Helper to get grapheme index from code unit offset
   const getGraphemeIndexFromOffset = (text: string, offset: number): number => {
     const graphemes = splitter.splitGraphemes(text);
     let currentOffset = 0;
@@ -90,12 +99,14 @@ const EmojiPasswordInput = ({
     return graphemes.length;
   };
 
-  // Handle emoji selection without focusing input
   const handleEmojiSelect = (emoji: string) => {
-    const pos = inputRef.current?.selectionStart ?? value.length;
+    const input = inputRef.current;
+    if (!input) return;
+
+    const pos = input.selectionStart ?? value.length;
     const graphemePos = showPassword
-      ? getGraphemeIndexFromOffset(value, pos) // Convert code unit pos to grapheme pos
-      : pos; // When hidden, pos is already in graphemes
+      ? getGraphemeIndexFromOffset(value, pos)
+      : pos;
 
     const graphemes = splitter.splitGraphemes(value);
     const newGraphemes = [
@@ -103,35 +114,26 @@ const EmojiPasswordInput = ({
       emoji,
       ...graphemes.slice(graphemePos),
     ];
-    const newValue = newGraphemes.join('');
-    onChange(newValue);
+    onChange(newGraphemes.join(''));
 
-    // Set cursor position after the inserted emoji
     setTimeout(() => {
       if (inputRef.current) {
+        const newPos = graphemePos + 1;
         if (showPassword) {
-          // When shown, set cursor in code units
-          const newOffset = getCodeUnitOffset(newValue, graphemePos + 1);
+          const newOffset = getCodeUnitOffset(newGraphemes.join(''), newPos);
           inputRef.current.setSelectionRange(newOffset, newOffset);
         } else {
-          // When hidden, set cursor in grapheme units
-          const newPos = graphemePos + 1;
           inputRef.current.setSelectionRange(newPos, newPos);
         }
       }
     }, 0);
-
-    // Keep emoji picker open (removed the close picker line)
   };
 
-  // Handle input events when password is hidden
   useEffect(() => {
     const input = inputRef.current;
-    if (!input) return;
+    if (!input || showPassword) return;
 
     const handleBeforeInput = (event: InputEvent) => {
-      if (showPassword) return; // Let default behavior handle when shown
-
       event.preventDefault();
       const start = input.selectionStart ?? 0;
       const end = input.selectionEnd ?? 0;
@@ -175,13 +177,6 @@ const EmojiPasswordInput = ({
 
       onChange(newPassword);
 
-      const newMasked = splitter
-        .splitGraphemes(newPassword)
-        .map(() => '•')
-        .join('');
-
-      input.value = newMasked;
-
       setTimeout(() => {
         input.setSelectionRange(newPos, newPos);
       }, 0);
@@ -191,25 +186,9 @@ const EmojiPasswordInput = ({
     return () => input.removeEventListener('beforeinput', handleBeforeInput);
   }, [showPassword, value, onChange]);
 
-  // Update input value and cursor when showPassword toggles
-  useEffect(() => {
-    if (inputRef.current) {
-      if (showPassword) {
-        inputRef.current.value = value;
-        inputRef.current.setSelectionRange(value.length, value.length);
-      } else {
-        inputRef.current.value = maskedValue;
-        inputRef.current.setSelectionRange(
-          maskedValue.length,
-          maskedValue.length
-        );
-      }
-    }
-  }, [showPassword, value, maskedValue]);
-
   return (
     <div className='mb-2 relative'>
-      <div className='flex border border-gray-300 rounded-md overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-opacity-50 focus-within:border-blue-500'>
+      <div className='flex border border-gray-300 rounded-md overflow-hidden focus-within:ring-2 focus-within:ring-blue-500'>
         <input
           ref={inputRef}
           type='text'
@@ -221,28 +200,26 @@ const EmojiPasswordInput = ({
         />
         <button
           type='button'
-          className={`px-2 flex items-center justify-center transition-colors ${
-            showEmojiPicker ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
+          className={`px-2 ${
+            showEmojiPicker ? 'bg-blue-100' : 'hover:bg-gray-100'
           }`}
           onClick={toggleEmojiPicker}
-          title={showEmojiPicker ? 'Close emoji picker' : 'Add emoji'}
         >
           <span
             dangerouslySetInnerHTML={renderEmojiWithTwemoji('🙂')}
-            className='size-5 flex items-center'
+            className='size-5'
           />
         </button>
         <button
           type='button'
-          className='px-2 flex items-center justify-center hover:bg-gray-100 transition-colors'
+          className='px-2 hover:bg-gray-100'
           onClick={handleToggleShowPassword}
-          title={showPassword ? 'Hide password' : 'Show password'}
         >
           <span
             dangerouslySetInnerHTML={renderEmojiWithTwemoji(
               showPassword ? '👁️' : '🕶️'
             )}
-            className='size-5 flex items-center'
+            className='size-5'
           />
         </button>
       </div>
