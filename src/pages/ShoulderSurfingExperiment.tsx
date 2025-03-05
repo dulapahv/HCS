@@ -70,7 +70,7 @@ function ShoulderSurfingExperiment() {
   const [guessAttempt, setGuessAttempt] = useState('');
   const [guessResult, setGuessResult] = useState<boolean | null>(null);
   const [attempts, setAttempts] = useState(0);
-  const [maxAttempts] = useState(3);
+  const [maxAttempts] = useState(5);
   const [showPassword, setShowPassword] = useState(false);
   const [results, setResults] = useState<
     {
