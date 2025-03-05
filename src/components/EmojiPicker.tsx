@@ -5,11 +5,18 @@ import { EmojiButton } from './EmojiDisplay';
 interface EmojiPickerProps {
   onEmojiSelect: (emoji: string) => void;
   onClose: () => void;
+  hideRecentEmojis?: boolean; // Added prop to control recent emojis visibility
 }
 
-const EmojiPicker = ({ onEmojiSelect, onClose }: EmojiPickerProps) => {
+const EmojiPicker = ({
+  onEmojiSelect,
+  onClose,
+  hideRecentEmojis = false, // Default to false for backward compatibility
+}: EmojiPickerProps) => {
   const pickerRef = useRef<HTMLDivElement>(null);
-  const [activeCategory, setActiveCategory] = useState<string>('recent');
+  const [activeCategory, setActiveCategory] = useState<string>(
+    hideRecentEmojis ? 'faces' : 'recent'
+  );
 
   // Close the picker when clicking outside
   useEffect(() => {
@@ -28,6 +35,8 @@ const EmojiPicker = ({ onEmojiSelect, onClose }: EmojiPickerProps) => {
 
   // Recently used emojis (could be stored in localStorage)
   const recentEmojis = useMemo(() => {
+    if (hideRecentEmojis) return [];
+
     const stored = localStorage.getItem('recentEmojis');
     if (stored) {
       try {
@@ -38,9 +47,11 @@ const EmojiPicker = ({ onEmojiSelect, onClose }: EmojiPickerProps) => {
       }
     }
     return commonEmojis.slice(0, 20);
-  }, []);
+  }, [hideRecentEmojis]);
 
   const addToRecentEmojis = (emoji: string) => {
+    if (hideRecentEmojis) return;
+
     const stored = localStorage.getItem('recentEmojis');
     let recent = [];
 
@@ -60,7 +71,9 @@ const EmojiPicker = ({ onEmojiSelect, onClose }: EmojiPickerProps) => {
 
   // Handler for emoji selection
   const handleEmojiSelect = (emoji: string) => {
-    addToRecentEmojis(emoji);
+    if (!hideRecentEmojis) {
+      addToRecentEmojis(emoji);
+    }
     onEmojiSelect(emoji);
   };
 
@@ -71,14 +84,14 @@ const EmojiPicker = ({ onEmojiSelect, onClose }: EmojiPickerProps) => {
 
   // Get emojis for the current category
   const currentEmojis = useMemo(() => {
-    if (activeCategory === 'recent') {
+    if (activeCategory === 'recent' && !hideRecentEmojis) {
       return recentEmojis;
     }
     return (
       emojiCategories[activeCategory as keyof typeof emojiCategories] ||
       commonEmojis
     );
-  }, [activeCategory, recentEmojis]);
+  }, [activeCategory, recentEmojis, hideRecentEmojis]);
 
   return (
     <div
@@ -88,17 +101,19 @@ const EmojiPicker = ({ onEmojiSelect, onClose }: EmojiPickerProps) => {
     >
       {/* Category tabs */}
       <div className='flex border-b mb-2 pb-1 overflow-x-auto'>
-        <button
-          type='button'
-          className={`p-1 mr-1 rounded text-sm flex-shrink-0 ${
-            activeCategory === 'recent'
-              ? 'bg-blue-100 font-medium'
-              : 'hover:bg-gray-100'
-          }`}
-          onClick={() => handleCategoryChange('recent')}
-        >
-          Recent
-        </button>
+        {!hideRecentEmojis && (
+          <button
+            type='button'
+            className={`p-1 mr-1 rounded text-sm flex-shrink-0 ${
+              activeCategory === 'recent'
+                ? 'bg-blue-100 font-medium'
+                : 'hover:bg-gray-100'
+            }`}
+            onClick={() => handleCategoryChange('recent')}
+          >
+            Recent
+          </button>
+        )}
         {Object.keys(emojiCategories).map((category) => (
           <button
             type='button'

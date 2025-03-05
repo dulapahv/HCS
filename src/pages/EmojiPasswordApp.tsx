@@ -257,6 +257,7 @@ function EmojiPasswordApp() {
               value={loginAttempt}
               onChange={handleLoginInputChange}
               placeholder='Enter your password'
+              hideRecentEmojis={true}
             />
           </div>
           <button
@@ -303,6 +304,7 @@ function EmojiPasswordApp() {
               value={password}
               onChange={setPassword}
               placeholder='Enter password (min 4 emojis)'
+              hideRecentEmojis={true}
             />
             <PasswordStrengthMeter strength={passwordStrength} />
             <div className='mt-2 flex items-center text-sm text-gray-500'>
@@ -324,6 +326,7 @@ function EmojiPasswordApp() {
               value={confirmedPassword}
               onChange={setConfirmedPassword}
               placeholder='Confirm your password'
+              hideRecentEmojis={true}
             />
           </div>
 
@@ -359,6 +362,7 @@ function EmojiPasswordApp() {
           creationTime={creationTime}
           passwordStrength={passwordStrength}
           passwordType='emoji'
+          showEmojiContent={false}
         />
 
         <div className='mt-6 mb-4'>
@@ -381,6 +385,7 @@ function EmojiPasswordApp() {
                 value={loginAttempt}
                 onChange={handleLoginInputChange}
                 placeholder='Enter your password'
+                hideRecentEmojis={true}
               />
             </div>
             <button
@@ -432,6 +437,7 @@ function EmojiPasswordApp() {
           passwordStrength={passwordStrength}
           passwordType='emoji'
           loginInfo={shortTermRecallInfo || undefined}
+          showEmojiContent={false}
         />
       )}
 

@@ -7,12 +7,14 @@ interface EmojiPasswordInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  hideRecentEmojis?: boolean; // Added prop to control recent emojis visibility
 }
 
 const EmojiPasswordInput = ({
   value,
   onChange,
   placeholder = 'Password',
+  hideRecentEmojis = false, // Default to false for backward compatibility
 }: EmojiPasswordInputProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -250,6 +252,7 @@ const EmojiPasswordInput = ({
           <EmojiPicker
             onEmojiSelect={handleEmojiSelect}
             onClose={() => setShowEmojiPicker(false)}
+            hideRecentEmojis={hideRecentEmojis}
           />
         </div>
       )}

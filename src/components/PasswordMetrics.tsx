@@ -18,6 +18,7 @@ interface PasswordMetricsProps {
     time: number;
   };
   isLongTerm?: boolean;
+  showEmojiContent?: boolean; // Added prop to control emoji content visibility
 }
 
 const PasswordMetrics = ({
@@ -27,6 +28,7 @@ const PasswordMetrics = ({
   passwordType,
   loginInfo,
   isLongTerm = false,
+  showEmojiContent = true, // Default to true for backward compatibility
 }: PasswordMetricsProps) => {
   // Stats about the password
   const emojiCount = countEmojis(password);
@@ -167,17 +169,21 @@ const PasswordMetrics = ({
         </>
       )}
 
-      {passwordType === 'emoji' && !isLongTerm && uniqueEmojis.length > 0 && (
-        <div className='mb-4'>
-          <div className='text-sm text-gray-500 mb-1'>
-            Unique Emojis Used ({uniqueEmojis.length})
+      {/* Only show emoji content if explicitly allowed */}
+      {passwordType === 'emoji' &&
+        !isLongTerm &&
+        uniqueEmojis.length > 0 &&
+        showEmojiContent && (
+          <div className='mb-4'>
+            <div className='text-sm text-gray-500 mb-1'>
+              Unique Emojis Used ({uniqueEmojis.length})
+            </div>
+            <div
+              className='text-2xl'
+              dangerouslySetInnerHTML={{ __html: renderedUniqueEmojis }}
+            ></div>
           </div>
-          <div
-            className='text-2xl'
-            dangerouslySetInnerHTML={{ __html: renderedUniqueEmojis }}
-          ></div>
-        </div>
-      )}
+        )}
 
       {loginInfo && (
         <div className='mb-4 bg-white p-3 rounded border'>
@@ -216,7 +222,7 @@ const PasswordMetrics = ({
         className='mt-2 w-full text-sm bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors'
         title='Copy metrics for Microsoft Form'
       >
-        Copy Metrics for Submission
+        Copy Result
       </button>
 
       <div className='mt-4 border-t pt-3'>
