@@ -3,6 +3,11 @@ import { Link } from 'react-router-dom';
 import EmojiPasswordInput from '../components/EmojiPasswordInput';
 import twemoji from 'twemoji';
 import { emojiCategories } from '../utils/emojiUtils';
+import {
+  calculateLevenshteinDistance,
+  calculateSimilarity,
+} from '../utils/levenshteinUtils';
+import GraphemeSplitter from 'grapheme-splitter';
 
 type PasswordType = 'emoji' | 'text';
 
@@ -49,6 +54,12 @@ const TEST_PASSWORDS = {
   ],
 };
 
+interface GuessAttempt {
+  value: string;
+  distance: number;
+  similarity: number;
+}
+
 function ShoulderSurfingExperiment() {
   // Current experiment state
   const [passwordType, setPasswordType] = useState<PasswordType>('emoji');
@@ -62,9 +73,20 @@ function ShoulderSurfingExperiment() {
   const [maxAttempts] = useState(3);
   const [showPassword, setShowPassword] = useState(false);
   const [results, setResults] = useState<
-    { id: string; correct: boolean; attempts: number }[]
+    {
+      id: string;
+      correct: boolean;
+      attempts: number;
+      minDistance: number;
+      maxSimilarity: number;
+    }[]
   >([]);
   const [targetEntered, setTargetEntered] = useState(false);
+  const [pastGuesses, setPastGuesses] = useState<GuessAttempt[]>([]);
+
+  // Track best attempt metrics
+  const [minDistance, setMinDistance] = useState<number | null>(null);
+  const [maxSimilarity, setMaxSimilarity] = useState<number | null>(null);
 
   // Reset experiment when password type changes
   useEffect(() => {
@@ -76,6 +98,9 @@ function ShoulderSurfingExperiment() {
     setGuessResult(null);
     setAttempts(0);
     setTargetEntered(false);
+    setPastGuesses([]);
+    setMinDistance(null);
+    setMaxSimilarity(null);
   }, [passwordType]);
 
   // Start target display (what the observer will try to shoulder surf)
@@ -103,7 +128,10 @@ function ShoulderSurfingExperiment() {
   ): string => {
     // Correctly count emoji characters using Array.from for emoji type
     const len =
-      type === 'emoji' ? Array.from(reference).length : reference.length;
+      type === 'emoji'
+        ? new GraphemeSplitter().splitGraphemes(reference).length
+        : reference.length;
+
     if (name.includes('random')) {
       if (type === 'emoji') {
         const emojis = [
@@ -144,11 +172,41 @@ function ShoulderSurfingExperiment() {
     setGuessAttempt('');
     setGuessResult(null);
     setAttempts(0);
+    setPastGuesses([]);
+    setMinDistance(null);
+    setMaxSimilarity(null);
   };
 
   // Handle password guess submission
   const handleGuessSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Calculate Levenshtein distance and similarity
+    const distance = calculateLevenshteinDistance(
+      currentPassword,
+      guessAttempt
+    );
+    const similarity = calculateSimilarity(currentPassword, guessAttempt);
+
+    // Update best metrics
+    if (minDistance === null || distance < minDistance) {
+      setMinDistance(distance);
+    }
+
+    if (maxSimilarity === null || similarity > maxSimilarity) {
+      setMaxSimilarity(similarity);
+    }
+
+    // Add to past guesses
+    setPastGuesses([
+      ...pastGuesses,
+      {
+        value: guessAttempt,
+        distance,
+        similarity,
+      },
+    ]);
+
     setAttempts(attempts + 1);
 
     if (guessAttempt === currentPassword) {
@@ -159,6 +217,8 @@ function ShoulderSurfingExperiment() {
           id: selectedPasswordId,
           correct: true,
           attempts: attempts + 1,
+          minDistance: distance,
+          maxSimilarity: similarity,
         },
       ]);
     } else if (attempts + 1 >= maxAttempts) {
@@ -169,8 +229,13 @@ function ShoulderSurfingExperiment() {
           id: selectedPasswordId,
           correct: false,
           attempts: attempts + 1,
+          minDistance: minDistance !== null ? minDistance : distance,
+          maxSimilarity: maxSimilarity !== null ? maxSimilarity : similarity,
         },
       ]);
+    } else {
+      // Clear input for next attempt
+      setGuessAttempt('');
     }
   };
 
@@ -184,6 +249,9 @@ function ShoulderSurfingExperiment() {
     setGuessResult(null);
     setAttempts(0);
     setTargetEntered(false);
+    setPastGuesses([]);
+    setMinDistance(null);
+    setMaxSimilarity(null);
   };
 
   // Render emoji with Twemoji
@@ -196,6 +264,14 @@ function ShoulderSurfingExperiment() {
         base: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/',
       }),
     };
+  };
+
+  // Get the effective length of a password (accounting for emojis)
+  const getEffectiveLength = (str: string): number => {
+    if (passwordType === 'emoji') {
+      return new GraphemeSplitter().splitGraphemes(str).length;
+    }
+    return str.length;
   };
 
   // Main experiment selection screen
@@ -316,6 +392,10 @@ function ShoulderSurfingExperiment() {
                         {result.attempts} attempts)
                       </span>
                     </div>
+                    <div className='text-sm text-gray-600 mt-1'>
+                      <div>Min Levenshtein Distance: {result.minDistance}</div>
+                      <div>Max Similarity: {result.maxSimilarity}%</div>
+                    </div>
                   </div>
                 );
               })}
@@ -428,6 +508,39 @@ function ShoulderSurfingExperiment() {
 
     // If observation is complete (success or max attempts reached)
     if (guessResult !== null) {
+      // Format experiment results as JSON for Microsoft Form
+      const formatResultsForCopy = () => {
+        const experimentResults = {
+          experiment_type: 'shoulder_surfing',
+          password_type: passwordType,
+          password_style: passwordObj?.description || '',
+          password_length: getEffectiveLength(currentPassword),
+          actual_password: currentPassword,
+          success: guessResult,
+          attempts_count: attempts,
+          min_levenshtein_distance: minDistance,
+          max_similarity_percentage: maxSimilarity,
+          attempt_details: pastGuesses.map((guess, index) => ({
+            attempt_number: index + 1,
+            guessed_value: guess.value,
+            levenshtein_distance: guess.distance,
+            similarity_percentage: guess.similarity,
+          })),
+          timestamp: new Date().toISOString(),
+        };
+
+        return JSON.stringify(experimentResults, null, 2);
+      };
+
+      // Copy results to clipboard
+      const copyResultsToClipboard = () => {
+        const resultsText = formatResultsForCopy();
+        navigator.clipboard
+          .writeText(resultsText)
+          .then(() => alert('Results copied to clipboard!'))
+          .catch((err) => console.error('Failed to copy results: ', err));
+      };
+
       return (
         <div className='max-w-md mx-auto my-12 p-6 bg-white rounded-lg shadow-md'>
           <h1 className='text-2xl font-bold text-center mb-4'>
@@ -484,17 +597,9 @@ function ShoulderSurfingExperiment() {
                 </span>
               </div>
               <div className='flex justify-between'>
-                <span className='text-gray-600'>Last Attempt:</span>
+                <span className='text-gray-600'>Length:</span>
                 <span className='font-medium'>
-                  {passwordType === 'emoji' && guessAttempt ? (
-                    <span
-                      dangerouslySetInnerHTML={renderEmojiWithTwemoji(
-                        guessAttempt
-                      )}
-                    />
-                  ) : (
-                    guessAttempt
-                  )}
+                  {getEffectiveLength(currentPassword)} characters
                 </span>
               </div>
               <div className='flex justify-between'>
@@ -503,13 +608,66 @@ function ShoulderSurfingExperiment() {
                   {attempts} of {maxAttempts}
                 </span>
               </div>
+              {minDistance !== null && (
+                <div className='flex justify-between'>
+                  <span className='text-gray-600'>
+                    Best Levenshtein Distance:
+                  </span>
+                  <span className='font-medium'>{minDistance}</span>
+                </div>
+              )}
+              {maxSimilarity !== null && (
+                <div className='flex justify-between'>
+                  <span className='text-gray-600'>Best Similarity:</span>
+                  <span className='font-medium'>{maxSimilarity}%</span>
+                </div>
+              )}
             </div>
           </div>
+
+          {pastGuesses.length > 0 && (
+            <div className='mb-6'>
+              <h3 className='font-medium text-gray-700 mb-2'>Your Attempts:</h3>
+              <div className='space-y-2'>
+                {pastGuesses.map((guess, index) => (
+                  <div key={index} className='p-3 bg-gray-50 rounded-md border'>
+                    <div className='flex justify-between mb-1'>
+                      <span className='text-gray-600'>
+                        Attempt {index + 1}:
+                      </span>
+                      <span className='font-medium'>
+                        {passwordType === 'emoji' ? (
+                          <span
+                            dangerouslySetInnerHTML={renderEmojiWithTwemoji(
+                              guess.value
+                            )}
+                          />
+                        ) : (
+                          guess.value
+                        )}
+                      </span>
+                    </div>
+                    <div className='text-sm text-gray-600'>
+                      <div>Levenshtein Distance: {guess.distance}</div>
+                      <div>Similarity: {guess.similarity}%</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={copyResultsToClipboard}
+            className='w-full mb-4 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors'
+          >
+            Copy Results
+          </button>
 
           <div className='flex gap-4'>
             <button
               onClick={resetExperiment}
-              className='flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors'
+              className='flex-1 py-2 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md transition-colors'
             >
               Try Another Password
             </button>
@@ -519,6 +677,14 @@ function ShoulderSurfingExperiment() {
             >
               Back to Home
             </Link>
+          </div>
+
+          <div className='mt-4 border-t pt-3'>
+            <p className='text-xs text-gray-500'>
+              Please copy these results using the button above and paste them
+              into the Microsoft Form to complete the study. Thank you for your
+              participation!
+            </p>
           </div>
         </div>
       );
@@ -543,6 +709,38 @@ function ShoulderSurfingExperiment() {
             <strong>Current attempt:</strong> {attempts + 1} of {maxAttempts}
           </p>
         </div>
+
+        {pastGuesses.length > 0 && (
+          <div className='mb-6'>
+            <h3 className='font-medium text-gray-700 mb-2'>
+              Previous Attempts:
+            </h3>
+            <div className='space-y-2'>
+              {pastGuesses.map((guess, index) => (
+                <div key={index} className='p-2 bg-gray-50 rounded-md border'>
+                  <div className='flex justify-between'>
+                    <span className='text-gray-600'>Attempt {index + 1}:</span>
+                    <span className='font-medium'>
+                      {passwordType === 'emoji' ? (
+                        <span
+                          dangerouslySetInnerHTML={renderEmojiWithTwemoji(
+                            guess.value
+                          )}
+                        />
+                      ) : (
+                        guess.value
+                      )}
+                    </span>
+                  </div>
+                  <div className='text-sm text-gray-600 mt-1'>
+                    <div>Levenshtein Distance: {guess.distance}</div>
+                    <div>Similarity: {guess.similarity}%</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleGuessSubmit}>
           {passwordType === 'emoji' ? (
