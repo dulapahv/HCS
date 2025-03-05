@@ -11,48 +11,9 @@ import GraphemeSplitter from 'grapheme-splitter';
 
 type PasswordType = 'emoji' | 'text';
 
-// Test passwords
-const TEST_PASSWORDS = {
-  emoji: [
-    {
-      id: 'emoji-random-4',
-      value: '🐱🍍🚗💙',
-      description: 'Random 4-Emoji Password',
-    },
-    {
-      id: 'emoji-random-6',
-      value: '🐼🍎🏠⚽🌸🎵',
-      description: 'Random 6-Emoji Password',
-    },
-    {
-      id: 'emoji-pattern-4',
-      value: '🐶🐱🐭🐹',
-      description: 'Pattern-based 4-Emoji Password (all animals)',
-    },
-    {
-      id: 'emoji-story-4',
-      value: '🏠🌧️🛌📱',
-      description: 'Story-based 4-Emoji Password',
-    },
-  ],
-  text: [
-    {
-      id: 'text-random-8',
-      value: 'xK7$j2pL',
-      description: 'Random 8-character Password',
-    },
-    {
-      id: 'text-pattern-8',
-      value: 'abcd1234',
-      description: 'Pattern-based 8-character Password',
-    },
-    {
-      id: 'text-word-8',
-      value: 'Sunshine42',
-      description: 'Word-based 8-character Password',
-    },
-  ],
-};
+// Non-ambiguous character set for text passwords
+const NON_AMBIGUOUS_CHARS =
+  'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%^&*()-=_+[]{}|;:,.<>/?';
 
 interface GuessAttempt {
   value: string;
@@ -105,59 +66,64 @@ function ShoulderSurfingExperiment() {
 
   // Start target display (what the observer will try to shoulder surf)
   const startTargetDisplay = () => {
-    if (!selectedPasswordId) {
-      alert('Please select a password to display');
-      return;
+    // Always set the selectedPasswordId based on the current passwordType
+    // This ensures we always have a valid selection
+    const passwordId = passwordType === 'emoji' ? 'emoji-mixed' : 'text-random';
+    setSelectedPasswordId(passwordId);
+
+    // Generate the password based on the selected type
+    if (passwordType === 'emoji') {
+      setCurrentPassword(generateMixedEmojiPassword());
+    } else {
+      setCurrentPassword(generateTextPassword());
     }
 
-    const passwordObj = TEST_PASSWORDS[passwordType].find(
-      (p) => p.id === selectedPasswordId
-    );
-    if (passwordObj) {
-      setCurrentPassword(
-        randomPassword(passwordType, passwordObj.id, passwordObj.value)
-      );
-      setTargetMode(true);
-    }
+    setTargetMode(true);
   };
 
-  const randomPassword = (
-    type: PasswordType,
-    name: string,
-    reference: string
-  ): string => {
-    // Correctly count emoji characters using Array.from for emoji type
-    const len =
-      type === 'emoji'
-        ? new GraphemeSplitter().splitGraphemes(reference).length
-        : reference.length;
+  // Generate a random emoji from all categories
+  const getRandomEmoji = (): string => {
+    const allEmojis = [
+      ...emojiCategories.activities,
+      ...emojiCategories.animals,
+      ...emojiCategories.food,
+      ...emojiCategories.faces,
+      ...emojiCategories.people,
+      ...emojiCategories.objects,
+      ...emojiCategories.symbols,
+      ...emojiCategories.travel,
+    ];
+    return allEmojis[Math.floor(Math.random() * allEmojis.length)];
+  };
 
-    if (name.includes('random')) {
-      if (type === 'emoji') {
-        const emojis = [
-          ...emojiCategories.activities,
-          ...emojiCategories.animals,
-          ...emojiCategories.food,
-          ...emojiCategories.faces,
-          ...emojiCategories.people,
-          ...emojiCategories.objects,
-          ...emojiCategories.symbols,
-          ...emojiCategories.travel,
-        ];
-        return Array.from(
-          { length: len },
-          () => emojis[Math.floor(Math.random() * emojis.length)]
-        ).join('');
-      } else {
-        const chars =
-          'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-=_+[]{}|;:,.<>/?';
-        return Array.from(
-          { length: len },
-          () => chars[Math.floor(Math.random() * chars.length)]
-        ).join('');
-      }
+  // Generate a random non-ambiguous character
+  const getRandomChar = (): string => {
+    return NON_AMBIGUOUS_CHARS.charAt(
+      Math.floor(Math.random() * NON_AMBIGUOUS_CHARS.length)
+    );
+  };
+
+  // Generate a mixed emoji password (4 chars + 4 emojis)
+  const generateMixedEmojiPassword = (): string => {
+    // Generate 4 text characters and 4 emojis
+    const textChars = Array.from({ length: 4 }, () => getRandomChar());
+    const emojis = Array.from({ length: 4 }, () => getRandomEmoji());
+
+    // Combine and shuffle
+    const combined = [...textChars, ...emojis];
+
+    // Fisher-Yates shuffle algorithm
+    for (let i = combined.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [combined[i], combined[j]] = [combined[j], combined[i]];
     }
-    return reference;
+
+    return combined.join('');
+  };
+
+  // Generate an 8-character text password without ambiguous characters
+  const generateTextPassword = (): string => {
+    return Array.from({ length: 8 }, () => getRandomChar()).join('');
   };
 
   // Simulate target entering password - this is what the observer would watch
@@ -297,8 +263,8 @@ function ShoulderSurfingExperiment() {
           </p>
           <ol className='text-sm text-blue-700 list-decimal pl-5 space-y-2'>
             <li>
-              <strong>Step 1:</strong> Select password type and a specific test
-              password.
+              <strong>Step 1:</strong> Select password type (emoji-mixed or
+              text).
             </li>
             <li>
               <strong>Step 2:</strong> The "target" person will see the password
@@ -322,7 +288,10 @@ function ShoulderSurfingExperiment() {
                   ? 'bg-blue-100 border-blue-500 text-blue-700'
                   : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
               }`}
-              onClick={() => setPasswordType('emoji')}
+              onClick={() => {
+                setPasswordType('emoji');
+                setSelectedPasswordId('emoji-mixed');
+              }}
             >
               Emoji Password
             </button>
@@ -332,7 +301,10 @@ function ShoulderSurfingExperiment() {
                   ? 'bg-blue-100 border-blue-500 text-blue-700'
                   : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
               }`}
-              onClick={() => setPasswordType('text')}
+              onClick={() => {
+                setPasswordType('text');
+                setSelectedPasswordId('text-random');
+              }}
             >
               Text Password
             </button>
@@ -341,29 +313,25 @@ function ShoulderSurfingExperiment() {
 
         <div className='mb-6'>
           <h3 className='text-md font-medium text-gray-700 mb-2'>
-            Select Test Password:
+            Selected Password Type:
           </h3>
-          <div className='space-y-2'>
-            {TEST_PASSWORDS[passwordType].map((password) => (
-              <div
-                key={password.id}
-                className={`p-3 border rounded-md cursor-pointer transition-colors ${
-                  selectedPasswordId === password.id
-                    ? 'bg-blue-50 border-blue-500'
-                    : 'hover:bg-gray-50 border-gray-300'
-                }`}
-                onClick={() => setSelectedPasswordId(password.id)}
-              >
-                <div className='font-medium'>{password.description}</div>
+          <div className='p-3 border rounded-md bg-gray-50'>
+            {passwordType === 'emoji' && (
+              <div className='font-medium'>
+                Mixed Password (4 characters + 4 emojis randomly arranged)
               </div>
-            ))}
+            )}
+            {passwordType === 'text' && (
+              <div className='font-medium'>
+                Random 8-character Password (non-ambiguous characters)
+              </div>
+            )}
           </div>
         </div>
 
         <button
           onClick={startTargetDisplay}
-          disabled={!selectedPasswordId}
-          className='w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed'
+          className='w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors'
         >
           Start Target Display
         </button>
@@ -375,14 +343,14 @@ function ShoulderSurfingExperiment() {
             </h3>
             <div className='space-y-2'>
               {results.map((result, index) => {
-                const password = [
-                  ...TEST_PASSWORDS.emoji,
-                  ...TEST_PASSWORDS.text,
-                ].find((p) => p.id === result.id);
                 return (
                   <div key={index} className='p-2 border rounded-md bg-gray-50'>
                     <div className='flex justify-between'>
-                      <span>{password?.description}</span>
+                      <span>
+                        {result.id === 'emoji-mixed'
+                          ? 'Mixed Emoji Password'
+                          : 'Random Text Password'}
+                      </span>
                       <span
                         className={
                           result.correct ? 'text-green-600' : 'text-red-600'
@@ -408,14 +376,15 @@ function ShoulderSurfingExperiment() {
 
   // Target display screen (the person being observed)
   if (targetMode) {
-    const passwordObj = TEST_PASSWORDS[passwordType].find(
-      (p) => p.id === selectedPasswordId
-    );
+    const passwordDesc =
+      selectedPasswordId === 'emoji-mixed'
+        ? 'Mixed Password (4 characters + 4 emojis)'
+        : 'Random 8-character Password';
 
     return (
       <div className='max-w-md mx-auto my-12 p-6 bg-white rounded-lg shadow-md'>
         <h1 className='text-2xl font-bold text-blue-600 mb-4'>
-          Target Display - {passwordObj?.description}
+          Target Display - {passwordDesc}
         </h1>
 
         <div className='bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-6'>
@@ -502,10 +471,6 @@ function ShoulderSurfingExperiment() {
 
   // Observer attempt screen
   if (observerMode) {
-    const passwordObj = TEST_PASSWORDS[passwordType].find(
-      (p) => p.id === selectedPasswordId
-    );
-
     // If observation is complete (success or max attempts reached)
     if (guessResult !== null) {
       // Format experiment results as JSON for Microsoft Form
@@ -513,7 +478,7 @@ function ShoulderSurfingExperiment() {
         const experimentResults = {
           experiment_type: 'shoulder_surfing',
           password_type: passwordType,
-          password_style: passwordObj?.description || '',
+          password_style: passwordType === 'emoji' ? 'mixed' : 'random',
           password_length: getEffectiveLength(currentPassword),
           actual_password: currentPassword,
           success: guessResult,
@@ -574,13 +539,9 @@ function ShoulderSurfingExperiment() {
                 <span className='text-gray-600'>Type:</span>
                 <span className='font-medium'>
                   {passwordType === 'emoji'
-                    ? 'Emoji Password'
+                    ? 'Mixed Emoji Password'
                     : 'Text Password'}
                 </span>
-              </div>
-              <div className='flex justify-between'>
-                <span className='text-gray-600'>Style:</span>
-                <span className='font-medium'>{passwordObj?.description}</span>
               </div>
               <div className='flex justify-between'>
                 <span className='text-gray-600'>Actual Password:</span>
