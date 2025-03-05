@@ -13,7 +13,7 @@ type PasswordType = 'emoji' | 'text';
 
 // Non-ambiguous character set for text passwords
 const NON_AMBIGUOUS_CHARS =
-  'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%^&*()-=_+[]{}|;:,.<>/?';
+  'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%^&*';
 
 interface GuessAttempt {
   value: string;
