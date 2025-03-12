@@ -304,7 +304,6 @@ function EmojiPasswordApp() {
               value={password}
               onChange={setPassword}
               placeholder='Enter password (min 4 emojis)'
-              hideRecentEmojis={true}
             />
             <PasswordStrengthMeter strength={passwordStrength} />
             <div className='mt-2 flex items-center text-sm text-gray-500'>
