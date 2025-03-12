@@ -325,7 +325,6 @@ function EmojiPasswordApp() {
               value={confirmedPassword}
               onChange={setConfirmedPassword}
               placeholder='Confirm your password'
-              hideRecentEmojis={true}
             />
           </div>
 
