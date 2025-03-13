@@ -83,7 +83,7 @@ function TextPasswordApp() {
     if (loginStartTime === null && value.length === 1) {
       setLoginStartTime(Date.now());
     }
-    setLoginAttempt(value);
+    setLoginAttempt(value.trim());
   };
 
   const handleRegister = (e: React.FormEvent) => {
@@ -319,7 +319,7 @@ function TextPasswordApp() {
                 type={passwordVisible ? 'text' : 'password'}
                 id='password'
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => setPassword(e.target.value.trim())}
                 className='w-full py-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                 placeholder='Enter password (min 8 characters)'
               />
@@ -352,7 +352,7 @@ function TextPasswordApp() {
                 type={passwordVisible ? 'text' : 'password'}
                 id='confirmPassword'
                 value={confirmedPassword}
-                onChange={(e) => setConfirmedPassword(e.target.value)}
+                onChange={(e) => setConfirmedPassword(e.target.value.trim())}
                 className='w-full py-2 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                 placeholder='Confirm your password'
               />

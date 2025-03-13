@@ -122,7 +122,7 @@ function EmojiPasswordApp() {
     if (loginStartTime === null && value.length === 1) {
       setLoginStartTime(Date.now());
     }
-    setLoginAttempt(value);
+    setLoginAttempt(value.trim());
   };
 
   const handleLogin = (e: React.FormEvent) => {

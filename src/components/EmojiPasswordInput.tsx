@@ -42,7 +42,7 @@ const EmojiPasswordInput = ({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e.target.value);
+    onChange(e.target.value.trim());
   };
 
   const handleToggleShowPassword = () => {
@@ -108,7 +108,7 @@ const EmojiPasswordInput = ({
       ? getGraphemeIndexFromOffset(value, pos)
       : pos;
 
-    const graphemes = splitter.splitGraphemes(value);
+    const graphemes = splitter.splitGraphemes(value.trim());
     const newGraphemes = [
       ...graphemes.slice(0, graphemePos),
       emoji,
