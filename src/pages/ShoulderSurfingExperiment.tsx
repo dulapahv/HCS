@@ -713,6 +713,7 @@ function ShoulderSurfingExperiment() {
                 value={guessAttempt}
                 onChange={setGuessAttempt}
                 placeholder='Enter your guess'
+                hideRecentEmojis={true}
               />
             </div>
           ) : (
