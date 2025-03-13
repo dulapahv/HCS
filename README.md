@@ -1,26 +1,46 @@
 # EmojiPass Study
 
-A research application for studying emoji-based passwords and their security characteristics compared to traditional text passwords.
+This document provides instructions for setting up and running the EmojiPass Study application for evaluation purposes. The application implements a comparative study platform examining emoji-based passwords versus traditional text-based passwords in terms of usability, memorability, and security.
+
+> Try the live application at [https://hcs-n0miya.vercel.app/](https://hcs-n0miya.vercel.app/)
+
+## Table of Contents
 
 - [EmojiPass Study](#emojipass-study)
-  - [Description](#description)
-  - [Installation](#installation)
-    - [Install dependencies using pnpm](#install-dependencies-using-pnpm)
+  - [Table of Contents](#table-of-contents)
+  - [Project Overview](#project-overview)
+  - [Installation Prerequisites](#installation-prerequisites)
+  - [Installation Instructions](#installation-instructions)
   - [Running the Application](#running-the-application)
-  - [Using pnpm](#using-pnpm)
-  - [How to Use](#how-to-use)
-  - [Features](#features)
-  - [Technologies Used](#technologies-used)
+  - [Application Structure \& Usage Guide](#application-structure--usage-guide)
+  - [Key Implementation Features](#key-implementation-features)
+  - [Data Collection](#data-collection)
+  - [Technical Implementation](#technical-implementation)
+  - [Project Structure](#project-structure)
 
-## Description
+## Project Overview
 
-This project implements an experimental platform for comparing emoji-based passwords with traditional text passwords. It includes features for password creation, strength evaluation, and security testing through a simulated shoulder surfing experiment.
+EmojiPass investigates how emoji inclusion affects password:
 
-## Installation
+- **Security**: Entropy, strength metrics, and resistance to observation attacks
+- **Usability**: Creation time, recall speed, and user experience
+- **Memorability**: Short-term and long-term recall success rates
 
-To set up the project locally, follow these steps:
+## Installation Prerequisites
 
-### Install dependencies using pnpm
+- [Node.js](https://nodejs.org/) (v16 or higher)
+- [pnpm](https://pnpm.io/) package manager (recommended for faster installation)
+
+If pnpm is not installed, install it globally using npm:
+
+```bash
+npm install -g pnpm
+```
+
+## Installation Instructions
+
+1. Navigate to the project directory
+2. Install dependencies:
 
 ```bash
 pnpm install
@@ -28,83 +48,108 @@ pnpm install
 
 ## Running the Application
 
-To start the development server:
-
-## Using pnpm
+Start the development server:
 
 ```bash
 pnpm dev
 ```
 
-This will start the application on <http://localhost:5173> (or another port if 5173 is in use).
+The application will be available at <http://localhost:5173> (or another port if 5173 is in use)
 
-## How to Use
+## Application Structure & Usage Guide
 
-1. Home Page:
+1. **Landing Page**
+    The landing page provides access to three experimental workflows:
 
-   - Navigate to the home page to start the experiment
-   - Choose between emoji password or text password creation
+    - Text Password Study
+    - Emoji Password Study
+    - Shoulder Surfing Experiment
 
-2. Creating a Password:
+2. **Text Password Path**
 
-   - Emoji Password: Use the emoji picker to select emojis for your password
-   - Text Password: Type in a traditional text password
-   - Both options will show you strength metrics and security analysis
+    - **Creation**: Generate a traditional text password (minimum 8 characters)
+    - **Metrics**: View entropy, strength, and creation time metrics
+    - **Short-term recall**: Test immediate memorability
+    - **Long-term recall**: Return later to test delayed recall
 
-3. Password Testing:
+3. **Emoji Password Path**
 
-   - After creating your password, you'll be prompted to log in to verify it
-   - Short-term memory test occurs immediately after creation
-   - Long-term memory test occurs during a later session
+    - **Creation**: Generate a password using at least 4 emojis
+    - **Metrics**: View comprehensive security metrics including emoji proportion
+    - **Short-term recall**: Test immediate memorability
+    - **Long-term recall**: Return later to test delayed recall
 
-4. Shoulder Surfing Experiment:
+4. **Shoulder Surfing Experiment**
 
-   - Participate in the security test by attempting to observe and recreate passwords
-   - Follow the on-screen instructions for completing each phase
+    - **Setup**: Select password type (emoji-mixed or text)
+    - **Target mode**: One participant views and enters a randomly generated password
+    - **Observer mode**: Another participant attempts to recreate the observed password
+    - **Results**: Analyze success rates and Levenshtein distance metrics
 
-5. Results:
+## Key Implementation Features
 
-   - View your password strength metrics
-   - See estimated time-to-crack and entropy values
-   - Compare your emoji and text password performances
+1. **Secure Password Handling**
 
-Project Structure
+    - bcrypt-based password hashing with salt rounds
+    - No plaintext password storage
+    - Secure credential verification
 
-```bash
-src/
-  components/      # Reusable UI components
-    EmojiDisplay.tsx
-    EmojiPasswordInput.tsx
-    EmojiPicker.tsx
-    PasswordMetrics.tsx
-    PasswordStrengthMeter.tsx
-  pages/           # Application pages
-    EmojiPasswordApp.tsx
-    HomePage.tsx
-    ShoulderSurfingExperiment.tsx
-    TextPasswordApp.tsx
-  utils/           # Utility functions
-    emojiUtils.ts
-    passwordUtils.ts
-  App.tsx          # Main application component
-  main.tsx         # Application entry point
-```
+2. **Emoji Processing Technology**
 
-## Features
+    - Cross-platform emoji rendering via Twemoji library
+    - Grapheme-aware string handling for multi-codepoint emojis
+    - Categorized emoji picker with 8 emoji groups
 
-- Emoji Password Creation: Create passwords using emojis
-- Text Password Creation: Create traditional text passwords
-- Password Strength Analysis: Calculation of password entropy and strength
-- Security Metrics: Time-to-crack estimation and security analysis
-- Shoulder Surfing Experiment: Simulated security testing against observation attacks
+3. **Security Metrics Calculation**
 
-## Technologies Used
+    - Shannon entropy calculation for mixed character sets
+    - Estimated crack-time based on current computational capabilities
+    - Separate strength calculations for text and emoji components
 
-- React 19
-- TypeScript
-- Vite
-- Tailwind CSS
-- bcryptjs for password hashing
+4. **Memory Testing Framework**
+
+    - Short-term recall testing (immediate memory)
+    - Long-term recall testing (using localStorage persistence)
+    - Success rate and attempt tracking
+
+5. **Shoulder Surfing Security Testing**
+
+    - Simulated observation attack scenarios
+    - Levenshtein distance calculation for partial success measurement
+    - Comparison of text vs. emoji resistance to observation
+
+## Data Collection
+
+The application enables participants to copy results in JSON format for submission to a Microsoft Form. All experimental metrics are automatically calculated and formatted for easy collection.
+
+## Technical Implementation
+
+This project is built with:
+
+- React with TypeScript
+- Tailwind CSS for styling
+- bcryptjs for secure password handling
 - React Router for navigation
-- Vercel for deployment
-- Twemoji for emoji rendering
+- LocalStorage for session persistence
+
+## Project Structure
+
+```txt
+src/
+├── components/         # Core UI components
+│   ├── EmojiDisplay.tsx           # Emoji rendering
+│   ├── EmojiPasswordInput.tsx     # Password input with emoji support
+│   ├── EmojiPicker.tsx            # Categorized emoji selection
+│   ├── PasswordMetrics.tsx        # Security metric display
+│   └── PasswordStrengthMeter.tsx  # Visual strength indicator
+├── pages/              # Application pages
+│   ├── EmojiPasswordApp.tsx       # Emoji password flow
+│   ├── HomePage.tsx               # Landing page
+│   ├── ShoulderSurfingExperiment.tsx  # Security testing
+│   └── TextPasswordApp.tsx        # Text password flow
+├── utils/              # Utility functions
+│   ├── emojiUtils.ts              # Emoji handling
+│   ├── levenshteinUtils.ts        # Distance calculation
+│   └── passwordUtils.ts           # Security algorithms
+└── main.tsx           # Application entry point
+```
